@@ -11,7 +11,7 @@ const char * queue_separator = "->";
 const char * queue_end = "-*";
 const char * pcb_format = "P";
 
-const char * empty_queue_string = "Q:Count=0: -* : contents: Null";
+const char * empty_fifo_queue_string = "Q:Count=0: -* : contents: Null";
 
 FIFOq_p FIFOq_construct() {
   FIFOq_p queue = malloc(sizeof(FIFOq));
@@ -112,8 +112,8 @@ char * FIFOq_to_string(FIFOq_p queue) {
 
   // if the queue is empty, print a predefined empty queue string
   if (queue->size == 0) {
-    return_string = calloc(1, strlen(empty_queue_string) * sizeof(char) + 10);
-    strcat(return_string, empty_queue_string);
+    return_string = calloc(1, strlen(empty_fifo_queue_string) * sizeof(char) + 10);
+    strcat(return_string, empty_fifo_queue_string);
     return return_string;
   }
 

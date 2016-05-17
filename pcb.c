@@ -4,11 +4,13 @@
 
 #include "pcb.h"
 
+/** Used for printing out state name based on state enum held in pcb */
 const char * state_names[] = {
   "New", "Ready", "Running", "Interrupted", "Waiting", "Halted"
 };
 
-const char * string_format = "PID: %lu, State: %s, Priority: 0x%0X, PC: 0x%04lX";
+/** The string format of a PCB, also the longest string it can be. ~82 */
+const char * string_format = "PID: 0x7FFFFFFFFFFFFFFF, State: Interrupted, Priority: 0xF, PC: 0x7FFFFFFFFFFFFFFF";
 
 PCB_p PCB_construct(void) {
   return malloc(sizeof(PCB));
@@ -45,8 +47,8 @@ unsigned long PCB_get_pid(PCB_p the_pcb) {
 
 char * PCB_to_string(PCB_p the_pcb) {
   if (the_pcb != NULL) {
-    static char return_string[50];
-    sprintf(return_string, "PID: 0x%lX, State: %s, Priority: 0x%0X, PC: 0x%04lX",
+    static char return_string[82 + 1];
+    sprintf(return_string, "PID: 0x%lX, State: %s, Priority: 0x%hX, PC: 0x%lX",
             the_pcb->pid, state_names[the_pcb->state], the_pcb->priority, the_pcb->pc);
     return return_string;
   }

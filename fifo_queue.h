@@ -23,7 +23,7 @@ typedef struct FIFO_q {
 } FIFOq;
 typedef FIFOq * FIFOq_p;
 
-/** Returns fifoq pointer to heal allocation. */
+/** Returns fifoq pointer to heap allocation. */
 FIFOq_p FIFOq_construct(void);
 
 /** Sets the default values for fifoq member data. */
