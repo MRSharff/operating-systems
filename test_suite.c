@@ -6,7 +6,7 @@
 
 int main(void) {
   // PCB_test();
-  // FIFOq_test();
+  // FIFOq_test(50);
   priority_test();
   return 0;
 }

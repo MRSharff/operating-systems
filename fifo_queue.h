@@ -51,6 +51,6 @@ int FIFOq_size(FIFOq_p);
 char * FIFOq_to_string(FIFOq_p);
 
 /** Test method */
-int FIFOq_test(void);
+int FIFOq_test(int);
 
 #endif

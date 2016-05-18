@@ -11,7 +11,7 @@ const char * queue_separator = "->";
 const char * queue_end = "-*";
 const char * pcb_format = "P";
 
-const char * empty_fifo_queue_string = "Q:Count=0: -* : contents: Null";
+const char * empty_fifo_queue_string = "Q:Count=0: -* : contents: Empty";
 
 FIFOq_p FIFOq_construct() {
   FIFOq_p queue = malloc(sizeof(FIFOq));
@@ -107,8 +107,20 @@ int FIFOq_size(FIFOq_p queue) {
 }
 
 char * FIFOq_to_string(FIFOq_p queue) {
+  // This function requires that the implementation holds a variable to the pointer
+  // that this function returns. Then prints it. Then frees using the variable.
+
+  // The logic for string allocation size is not exact. There are overestimates in
+  // some places which may cause high memory usage. For what we are using this for,
+  // this logic works fine. However, it has the ability to be optimized.
+
+  //initialize variables
   char * return_string;
   char * last_pcb_string;
+  int digit_count = 4;
+  int queue_size;
+  int string_length;
+  char buffer[digit_count+2];
 
   // if the queue is empty, print a predefined empty queue string
   if (queue->size == 0) {
@@ -118,17 +130,10 @@ char * FIFOq_to_string(FIFOq_p queue) {
   }
 
   if (queue != NULL) {
-    // initialize variables
-    int digit_count = 1;
-    int queue_size;
-    int string_length;
-
     // get the largest amount of digits in the queue, we'll need it for PX allocation
-    queue_size = queue->size;
-    while (queue_size != 0) {
-      queue_size = queue_size / 10;
-      digit_count++;
-    }
+    // Set Digit count to 4 to allow for PXXXX process number allocation.
+    // This could be a cause of a segfault if the PIDs ever reach very high numbers
+    // if so, just set digit_count to higher number. Although, this will take up more memory.
     queue_size = queue->size;
 
     last_pcb_string = PCB_to_string(queue->tail->pcb);
@@ -155,18 +160,17 @@ char * FIFOq_to_string(FIFOq_p queue) {
 
     // This part adds all the P1->P2->P3 etc to the string
     node_p current = queue->head;
-    char buffer[digit_count+2];
     while (current != NULL) {
       sprintf(buffer, "P%lu", current->pcb->pid);
       strcat(return_string, buffer);
-      if (current->next != NULL) { //print the queue seperator only if it's not the last one
+      //print the queue seperator only if it's not the last item
+      if (current->next != NULL) {
         strcat(return_string, queue_separator);
       }
       current = current->next;
     }
 
-    //print the queue_end string (default is -*)
-    strcat(return_string, queue_end);
+    strcat(return_string, queue_end);//print queue_end string (default is -*)
     strcat(return_string, spacer); //print spacer
     strcat(return_string, last_pcb_string); // print last pcb in the queue
     return return_string;
@@ -174,11 +178,11 @@ char * FIFOq_to_string(FIFOq_p queue) {
   return "Queue is NULL";
 }
 
-int FIFOq_test(void) {
+int FIFOq_test(int test_size) {
   int i;
   FIFOq_p queue = FIFOq_construct();
   FIFOq_init(queue);
-  for (i = 0; i < 150; i++) {
+  for (i = 0; i < test_size; i++) {
     PCB_p temp = PCB_construct();
     PCB_init(temp);
     PCB_set_pid(temp, i);
