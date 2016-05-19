@@ -43,6 +43,22 @@ unsigned long PCB_get_pid(PCB_p the_pcb) {
   if (the_pcb != NULL) {
     return the_pcb->pid;
   }
+  printf("the_pcb was null in get_pid");
+}
+
+pcb_state PCB_get_state(PCB_p the_pcb) {
+  if (the_pcb != NULL) {
+    return the_pcb->state;
+  }
+  printf("the_pcb was null in get_state");
+}
+
+int PCB_set_state(PCB_p the_pcb, pcb_state the_state) {
+  if (the_pcb != NULL) {
+    the_pcb->state = the_state;
+    return NO_ERRORS;
+  }
+  return NULL_POINTER;
 }
 
 char * PCB_to_string(PCB_p the_pcb) {

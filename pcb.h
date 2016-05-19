@@ -47,6 +47,12 @@ int PCB_set_pid(PCB_p, unsigned long);
 /** Returns the PID of the pcb */
 unsigned long PCB_get_pid(PCB_p);
 
+/** Returns the state of the pcb */
+pcb_state PCB_get_state(PCB_p);
+
+/** Sets the state of the pcb */
+int PCB_set_state(PCB_p, pcb_state);
+
 /** Returns a string representation of the PCB */
 char * PCB_to_string(PCB_p);
 

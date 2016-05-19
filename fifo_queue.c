@@ -32,6 +32,7 @@ int FIFOq_init(FIFOq_p queue) {
     return NO_ERRORS;
   }
   print_error(NULL_POINTER);
+  printf("queue was null in FIFOq_init");
   return NULL_POINTER;
 }
 
@@ -53,6 +54,7 @@ int FIFOq_enqueue(FIFOq_p queue, PCB_p pcb) {
     return NO_ERRORS;
   }
   print_error(NULL_POINTER);
+  printf("queue or pcb was null in FIFOq_enqueue");
   return NULL_POINTER;
 }
 
@@ -67,6 +69,7 @@ PCB_p FIFOq_dequeue(FIFOq_p queue) {
     return result;
   }
   print_error(NULL_POINTER);
+  printf("queue was null in FIFOq_dequeue");
   return NULL;
 }
 
@@ -75,6 +78,7 @@ PCB_p FIFOq_peek(FIFOq_p queue) {
     return queue->head->pcb;
   }
   print_error(NULL_POINTER);
+  printf("queue was null in FIFOq_peek");
   return NULL;
 }
 
@@ -87,6 +91,7 @@ int FIFOq_destruct(FIFOq_p queue) {
     return NO_ERRORS;
   }
   print_error(NULL_POINTER);
+  printf("queue was null in FIFOq_destruct");
   return NULL_POINTER;
 }
 
@@ -95,6 +100,7 @@ int FIFOq_is_empty(FIFOq_p queue) {
     return (queue->size == 0);
   }
   print_error(NULL_POINTER);
+  printf("queue was null in FIFOq_is_empty");
   return -1;
 }
 
@@ -103,6 +109,7 @@ int FIFOq_size(FIFOq_p queue) {
     return queue->size;
   }
   print_error(NULL_POINTER);
+  printf("queue was null in FIFOq_size");
   return -1;
 }
 
@@ -175,7 +182,7 @@ char * FIFOq_to_string(FIFOq_p queue) {
     strcat(return_string, last_pcb_string); // print last pcb in the queue
     return return_string;
   }
-  return "Queue is NULL";
+  return "Queue is NULL in to_string";
 }
 
 int FIFOq_test(int test_size) {
