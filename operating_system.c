@@ -1,3 +1,5 @@
+// Created by Mat Sharff
+
 #include "operating_system.h"
 
 #define RUN_TIME 200
@@ -19,15 +21,20 @@ int dispatcher(void) {
   char * string; // free this after printing queue
   //save state of current process into its pcb (done in isr)
 
-  //dequeue next waiting process
   if (ready_queue != NULL) {
+    // Only dequeue next waiting process if ready queue has something to dequeue
+    // otherwise, keep running the current process (usually idl)
     if (ready_queue->size > 0) {
-
       PCB_p temp = FIFOq_dequeue(ready_queue);
       if (dispatch_counter == 4) { // Only print stuff every 4th context switch (dispatch call)
         dispatch_counter = 0; // reset the counter;
         printf("Switching to: %s\n", PCB_to_string(temp));
+
+        // PCB_set_state(temp, running); Only required when doing print stuff
+        // because current_processgets set to temp and current_process state
+        // get set to running outside of if (ready_queue->size > 0) statement
         PCB_set_state(temp, running);
+
         printf("Now running: %s\n", PCB_to_string(temp));
         printf("Returned to Ready Queue: %s\n", PCB_to_string(current_process));
         string = FIFOq_to_string(ready_queue);
@@ -98,11 +105,10 @@ int scheduler(enum interrupt_type int_type) {
   }
   //call dispatcher
   dispatcher();
-  // Additional Housekeeping
+  // Additional Housekeeping (currently none)
 
   // return to pseudo_isr
   return return_status;
-
 }
 
 
@@ -118,10 +124,10 @@ int pseudo_isr(enum interrupt_type int_type, unsigned long * cpu_pc_register) {
     // pc was pushed to sys_stack right before isr happened.
     current_process->pc = sys_stack;
 
-    // TODO: Up-call to scheduler
+    // Up-call to scheduler
     scheduler(int_type);
 
-    //TODO: IRET, put sys_stack into pc_register
+    // IRET, put sys_stack into pc_register
     *cpu_pc_register = sys_stack;
     return NO_ERRORS;
   }
@@ -132,14 +138,14 @@ int pseudo_isr(enum interrupt_type int_type, unsigned long * cpu_pc_register) {
 
 void cpu(void) {
 
-
   unsigned long pc_register = 0;
   int i, run_count;
   int random_pc_increment;
   int error_check;
   int rand_num_of_processes;
 
-  for (run_count = 0; run_count < RUN_TIME; run_count++) { // main cpu loop
+  // main cpu loop
+  for (run_count = 0; run_count < RUN_TIME; run_count++) {
     rand_num_of_processes = rand() % 5;
     if (create_count < CREATE_ITERATIONS) { // Create processes
       printf("Creating %d processes\n", rand_num_of_processes);
@@ -178,26 +184,31 @@ void cpu(void) {
 
 int main(void) {
 
+  // Seed rand
   srand(time(NULL));
 
+  // initialize variables
   pid_counter = 0;
   sys_stack = 0;
   create_count = 0;
   dispatch_counter = 0;
 
+  // Create and initialize idle pcb
   idl = PCB_construct();
   PCB_init(idl);
   PCB_set_pid(idl, 0xFFFFFFFF);
   current_process = idl;
 
+  // Create and initialize queues
   ready_queue = FIFOq_construct();
   FIFOq_init(ready_queue);
-
   created_queue = FIFOq_construct();
   FIFOq_init(created_queue);
 
+  // Run a cpu
   cpu();
 
+  // Cleanup / free stuff to not have memory leaks
   FIFOq_destruct(ready_queue);
   FIFOq_destruct(created_queue);
   PCB_destruct(idl);
