@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include "errors.h"
 
 typedef enum state_type {
@@ -29,6 +30,16 @@ typedef struct pcb {
   pcb_state state; // process state
   unsigned short priority; // priorities 0=highest, 15=lowest
   unsigned long pc; //holds the current pc value when preempted
+  unsigned long sw; // Status word
+  unsigned long max_pc; // number of instructions that should be processed before resetting to 0
+  clock_t creation; // computer clock when process was created
+  clock_t termination; // computer clock when process terminates (goes into list)
+  unsigned long terminate; // How many times the PC is allowed hit max_pc
+  unsigned long term_count; // How many times the PC HAS hit max_pc
+
+  int io_1_[4];
+  int io_2_[4];
+
 } PCB;
 typedef PCB * PCB_p;
 

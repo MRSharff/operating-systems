@@ -159,8 +159,9 @@ void cpu(void) {
     } // End create processes
     create_count++;
     // Simulate running of current process
-    random_pc_increment = rand() % (4000 + 1 - 3000) + 3000;
-    pc_register += random_pc_increment;
+    pc_register++; // increment by one this time, represents a single instruction
+    // random_pc_increment = rand() % (4000 + 1 - 3000) + 3000;
+    // pc_register += random_pc_increment;
 
     // Pseudo push of PC to system stack
     sys_stack = pc_register;
