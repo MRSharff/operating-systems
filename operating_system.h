@@ -10,13 +10,18 @@ enum interrupt_type {
 };
 
 /**
+ * Returns a PCB_p to be dispatched based on the Round Robin algorithm.
+ */
+PCB_p round_robin(void);
+
+/**
  * The dispatcher will save the state of the current process into its PCB
  * (here we mean the PC value). It will then dequeue the next waiting process
  * (PCB), change its state to running, and copy its PC value (and SW if you
  * implement it) to the SysStack location to replace the PC of the interrupted
  * process. The dispatcher then returns to the scheduler.
  */
-int dispatcher(void);
+int dispatcher(PCB_p);
 
 /**
  * Determines what type of interrupt happened from argument, schedules

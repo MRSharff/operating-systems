@@ -27,7 +27,7 @@ int PCB_init(PCB_p the_pcb) {
     the_pcb->priority = DEFAULT_PRIORITY;
     the_pcb->pc = DEFAULT_PC;
     the_pcb->sw = 0;
-    the_pcb->max_pc; // TODO: controller sets this.
+    the_pcb->max_pc = 0; // TODO: controller sets this.
     the_pcb->creation = clock();
     the_pcb->termination = 0; // set when enters terminate queue
     the_pcb->terminate = 0; // set by controller
