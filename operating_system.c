@@ -4,15 +4,23 @@
 
 #define RUN_TIME 200
 #define CREATE_ITERATIONS 5
+#define QUANTUM_DURATION 300
 
 //The following are initialized in main
 unsigned long pid_counter; // Needs to be mutex locked if using multiple cpus on different threads
 unsigned long sys_stack;
 int dispatch_counter;
 int create_count;
+int io_1_downcounter;
+int io_2_downcounter;
+
 PCB_p idl;
 FIFOq_p created_queue;
 FIFOq_p ready_queue; // Could use Priority queue since all PCB priorities will be same value
+FIFOq_p io_1_waiting_queue;
+FIFOq_p io_2_waiting_queue;
+
+
 
 //This pointer is changing constantly, initially set to point to idl in main
 PCB_p current_process;
@@ -72,16 +80,6 @@ int scheduler(enum interrupt_type int_type) {
   int return_status;
 
   switch (int_type) {
-    case io_1:
-      // Replace next two lines when implemented
-      return_status = INVALID_INPUT;
-      printf("io_1 type passed, not implemented yet, should not happen\n");
-      break;
-    case io_2:
-      // Replace next two lines when implemented
-      return_status = INVALID_INPUT;
-      printf("io_2 type passed, not implemented yet, should not happen\n");
-      break;
     case timer: // what if current process is idl process?
       current_process->state = ready; //set to ready even if current_process is idl
       // printf("current_process pid = 0x%lX\n", current_process->pid);
@@ -97,6 +95,16 @@ int scheduler(enum interrupt_type int_type) {
         printf("current_process was idl process, do not add to ready_queue\n");
       }
       return_status = NO_ERRORS;
+      break;
+    case io_1:
+      // Replace next two lines when implemented
+      return_status = INVALID_INPUT;
+      printf("io_1 type passed, not implemented yet, should not happen\n");
+      break;
+    case io_2:
+      // Replace next two lines when implemented
+      return_status = INVALID_INPUT;
+      printf("io_2 type passed, not implemented yet, should not happen\n");
       break;
     default: // this should never happen
       return_status = INVALID_INPUT;
@@ -135,6 +143,45 @@ int pseudo_isr(enum interrupt_type int_type, unsigned long * cpu_pc_register) {
   return NULL_POINTER;
 }
 
+int os_timer(int * the_timer_count) {
+  if (* the_timer_count == QUANTUM_DURATION) {
+    *the_timer_count = 0; // reset timer
+    return 1; // timer interrupt happened
+  }
+  return 0;
+}
+
+int check_for_io1_done_interrupt(void) {
+  if (io_1_downcounter == 0) {
+    io_1_downcounter--;
+    return 1;
+  }
+  io_1_downcounter--;
+  return 0;
+}
+
+int check_io(PCB_p the_pcb) {
+  int i;
+  for (i = 0; i < 4; i++) {
+    if (the_pcb->io_1_[i] == sys_stack) {
+      return 1; // request for device number 1
+    }
+    if (the_pcb->io_2_[i]) {
+      return 2; // request for device number 2
+    }
+  }
+  return 0;
+}
+
+int io_service_request_trap_handler(int the_io_device_number) {
+  if (the_io_device_number == 1) {
+    if (FIFOq_is_empty(io_1_waiting_queue)) {
+      io_1_downcounter = QUANTUM_DURATION * (rand() % (5 + 1 - 3) + 3); // multiply quantum 3-5 times
+    }
+
+  }
+}
+
 
 void cpu(void) {
 
@@ -143,9 +190,13 @@ void cpu(void) {
   int random_pc_increment;
   int error_check;
   int rand_num_of_processes;
+  int timer_count;
+  int is_timer_interrupt;
+  int is_io_interrupt;
 
   // main cpu loop
   for (run_count = 0; run_count < RUN_TIME; run_count++) {
+    error_check = 0; // TODO: Test this statement
     rand_num_of_processes = rand() % 5;
     if (create_count < CREATE_ITERATIONS) { // Create processes
       printf("Creating %d processes\n", rand_num_of_processes);
@@ -158,14 +209,32 @@ void cpu(void) {
       }
     } // End create processes
     create_count++;
-    // Simulate running of current process
+    // Simulate running of current process (Execute Instruction)
     pc_register++; // increment by one this time, represents a single instruction
     // random_pc_increment = rand() % (4000 + 1 - 3000) + 3000;
     // pc_register += random_pc_increment;
 
+    // Check for timer interrupt
+    is_timer_interrupt = os_timer(&timer_count);
+
     // Pseudo push of PC to system stack
     sys_stack = pc_register;
-    error_check = pseudo_isr(timer, &pc_register);// call pseudo_isr with timer interrupt type
+    if (is_timer_interrupt) {
+      error_check = pseudo_isr(timer, &pc_register);
+    }
+
+    // if one of the I/O arrays has a number with the current pc value in it
+    // trigger an IO_service_request_trap_handler which starts an I/O device downcounting
+    // and adds the current process into a waiting queue
+    is_io_interrupt = check_io(current_process);
+    if (is_io_interrupt == io_1_interrupt) {
+      // error_check = pseudo_isr(io_1_interrupt, &pc_register);
+    } else if (is_io_interrupt == io_2_interrupt) {
+      // error_check = pseudo_isr(io_1_interrupt, &pc_register);
+    }
+
+
+    // call pseudo_isr with timer interrupt type
     switch(error_check) { // handle any errors that happened in pseudo_isr
       case NO_ERRORS: //working good, just break and continue;
         break;
@@ -193,6 +262,8 @@ int main(void) {
   sys_stack = 0;
   create_count = 0;
   dispatch_counter = 0;
+  io_1_downcounter = 0;
+  io_2_downcounter = 0;
 
   // Create and initialize idle pcb
   idl = PCB_construct();
@@ -205,6 +276,10 @@ int main(void) {
   FIFOq_init(ready_queue);
   created_queue = FIFOq_construct();
   FIFOq_init(created_queue);
+  io_1_waiting_queue = FIFOq_construct();
+  FIFOq_init(io_1_waiting_queue);
+  io_2_waiting_queue = FIFOq_construct();
+  FIFOq_init(io_2_waiting_queue);
 
   // Run a cpu
   cpu();

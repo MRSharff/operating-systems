@@ -6,7 +6,7 @@
 #include <time.h>
 
 enum interrupt_type {
-  io_1, io_2, timer
+  timer, io_1_interrupt, io_2_interrupt
 };
 
 /**
