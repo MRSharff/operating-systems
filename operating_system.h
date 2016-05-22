@@ -6,7 +6,7 @@
 #include <time.h>
 
 enum interrupt_type {
-  timer, io_1_interrupt, io_2_interrupt
+  timer, io_1_interrupt, io_2_interrupt, io_1_completion_interrupt, io_2_completion_interrupt
 };
 
 /**
@@ -35,7 +35,7 @@ int scheduler(enum interrupt_type);
  * with a PC value which, for now, is the integer just described.). And then
  * do an up-call to scheduler.
  */
-int pseudo_isr(enum interrupt_type, unsigned long *);
+int pseudo_isr(enum interrupt_type);//, unsigned long *);
 
 /**
  * The cpu is a loop that simulates running of processes. Each loop represents

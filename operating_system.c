@@ -2,7 +2,7 @@
 
 #include "operating_system.h"
 
-#define RUN_TIME 200
+#define RUN_TIME 5000
 #define CREATE_ITERATIONS 5
 #define QUANTUM_DURATION 300
 
@@ -13,6 +13,8 @@ int dispatch_counter;
 int create_count;
 int io_1_downcounter;
 int io_2_downcounter;
+int timer_count;
+unsigned long pc_register;
 
 PCB_p idl;
 FIFOq_p created_queue;
@@ -42,7 +44,7 @@ int dispatcher(PCB_p pcb_to_dispatch) {
     // Only dequeue next waiting process if ready queue has something to dequeue
     // otherwise, keep running the current process (usually idl)
     if (ready_queue->size > 0) {
-      if (dispatch_counter == 4) { // Only print stuff every 4th context switch (dispatch call)
+      if (dispatch_counter == 0) { // Only print stuff every 4th context switch (dispatch call)
         dispatch_counter = 0; // reset the counter;
         printf("Switching to: %s\n", PCB_to_string(pcb_to_dispatch));
 
@@ -104,31 +106,43 @@ int scheduler(enum interrupt_type int_type) {
       } else {
         printf("current_process was idl process, do not add to ready_queue\n");
       }
-      pcb_to_be_dispatched = round_robin();
+      // pcb_to_be_dispatched = round_robin();
       return_status = NO_ERRORS;
       break;
-    case io_1_interrupt:
+    case io_1_interrupt: // current_process requested io from device 1
       current_process->state = waiting; // set state to waiting (waiting on io)
       FIFOq_enqueue(io_1_waiting_queue, current_process);
-      pcb_to_be_dispatched = round_robin();
+      // pcb_to_be_dispatched = round_robin();
       // Replace next two lines when implemented
-      return_status = INVALID_INPUT;
-      printf("io_1 type passed, not implemented yet, should not happen\n");
+      // return_status = INVALID_INPUT;
+      // printf("io_1 type passed, not implemented yet, should not happen\n");
       break;
-    case io_2_interrupt:
+    case io_2_interrupt: // current_process requested io from device 2
       current_process->state = waiting; // set state to waiting (waiting on io)
       FIFOq_enqueue(io_2_waiting_queue, current_process);
-      pcb_to_be_dispatched = round_robin();
+      // pcb_to_be_dispatched = round_robin();
       // Replace next two lines when implemented
-      return_status = INVALID_INPUT;
-      printf("io_2 type passed, not implemented yet, should not happen\n");
+      // return_status = INVALID_INPUT;
+      // printf("io_2 type passed, not implemented yet, should not happen\n");
+      break;
+    case io_1_completion_interrupt:
+      //TODO: IMPLEMENT THIS, ITS ALREADY IN CPU loop
+      //TODO: DO case for io_2_completion_interrupt
+      //set pcb_to_be_dispatched to current process
+      // move pcb_to_be_dispatched = round_robin(); to each case statement
+      //
+    case process_termination_interrupt:
+      //this happens when a process is terminated.
+      // move current process to terminated queue, save clock() to pcb for terminate time
       break;
     default: // this should never happen
       return_status = INVALID_INPUT;
       printf("Invalid Interrupt type passed\n");
       break;
   }
+  pcb_to_be_dispatched = round_robin();
   //call dispatcher
+
   dispatcher(pcb_to_be_dispatched);
   // Additional Housekeeping (currently none)
 
@@ -137,7 +151,11 @@ int scheduler(enum interrupt_type int_type) {
 }
 
 
-int pseudo_isr(enum interrupt_type int_type, unsigned long * cpu_pc_register) {
+int pseudo_isr(enum interrupt_type int_type) { //, unsigned long * cpu_pc_register) {
+  // Pseudo push of PC to system stack
+  sys_stack = pc_register;
+  printf("Setting sys_stack to what was in pc_register: %lu\n", sys_stack);
+
   if (current_process != NULL) {
     if (dispatch_counter == 4) {
       printf("\n\nCurrently Running PCB: %s\n", PCB_to_string(current_process));
@@ -153,18 +171,21 @@ int pseudo_isr(enum interrupt_type int_type, unsigned long * cpu_pc_register) {
     scheduler(int_type);
 
     // IRET, put sys_stack into pc_register
-    *cpu_pc_register = sys_stack;
+    pc_register = sys_stack;
     return NO_ERRORS;
   }
   printf("current_process was null\n"); //this should never happen
   return NULL_POINTER;
 }
 
-int os_timer(int * the_timer_count) {
-  if (* the_timer_count == QUANTUM_DURATION) {
-    *the_timer_count = 0; // reset timer
+int os_timer() {
+  if (timer_count == QUANTUM_DURATION) {
+    printf("Time Slice over\n");
+    // timer_count = 0; // reset timer NO THIS SHOULD HAPPEN WHEN A NEW PROCESS GETS SET TO RUNNING
     return 1; // timer interrupt happened
   }
+  printf("The timer is at: %d\n", timer_count);
+  timer_count++;
   return 0;
 }
 
@@ -208,19 +229,43 @@ int io_service_request_trap_handler(int the_io_device_number) {
   }
 }
 
+int terminate_check() { // simulates a process throwing a terminate interrupt
+  if (current_process != NULL) {
+    if (pc_register == current_process->max_pc) {
+      pc_register = 0; // reset pc to 0
+      current_process->term_count++; // update term count
+    }
+    if (current_process->terminate > 0) { // if terminate == 0, the process does not terminate
+      if (current_process->term_count == current_process->terminate) {
+        return 1
+      }
+      return 0;
+    }
+  }
+  printf("in terminate_check: current_process is null\n");
+  return NULL;
+}
+
+int process_termination_trap_handler() {
+  if (current_process != NULL) {
+
+  }
+}
+
 
 void cpu(void) {
 
-  unsigned long pc_register = 0;
+  pc_register = 0;
   int i, run_count;
   int random_pc_increment;
   int error_check;
   int rand_num_of_processes;
-  int timer_count;
+
   int is_timer_interrupt;
   int is_io_request_interrupt;
   int is_io1_interrupt;
   int is_io2_interrupt;
+  int is_terminate_state;
 
   // main cpu loop
   for (run_count = 0; run_count < RUN_TIME; run_count++) {
@@ -230,8 +275,7 @@ void cpu(void) {
     is_io1_interrupt = 0;
     is_io2_interrupt = 0;
     is_io_request_interrupt = 0;
-
-
+    is_terminate_state = 0;
 
     rand_num_of_processes = rand() % 5;
     if (create_count < CREATE_ITERATIONS) { // Create processes
@@ -239,6 +283,7 @@ void cpu(void) {
       for (i = 0; i < rand_num_of_processes; i++) {
         PCB_p temp = PCB_construct();
         PCB_init(temp);
+        PCB_randomize_IO_arrays(temp);
         PCB_set_pid(temp, pid_counter);
         pid_counter++;
         FIFOq_enqueue(created_queue, temp);
@@ -249,37 +294,48 @@ void cpu(void) {
 
     // Simulate running of current process (Execute Instruction)
     pc_register++; // increment by one this time, represents a single instruction
+    printf("Executed instruction\n");
     // random_pc_increment = rand() % (4000 + 1 - 3000) + 3000;
     // pc_register += random_pc_increment;
 
-    // Check for timer interrupt
-    is_timer_interrupt = os_timer(&timer_count);
+    //Check if process should be terminated
+    is_terminate_state = terminate_check();
 
-    // Pseudo push of PC to system stack
-    sys_stack = pc_register;
+    // Check for timer interrupt
+    is_timer_interrupt = os_timer();
+
+
     if (is_timer_interrupt) {
-      error_check = pseudo_isr(timer, &pc_register);
+      error_check = pseudo_isr(timer);
     }
 
     //check for I/O completion
     is_io1_interrupt = check_for_io1_done_interrupt();
     is_io2_interrupt = check_for_io2_done_interrupt();
 
+
+    //TODO: MOVE THIS TO SCHEDULER
     if(is_io1_interrupt) { // io1 completion happened
+      printf("is_io1_interrupt\n");
+      pseudo_isr(io_1_completion_interrupt);
       // Pull from io1 waiting queue and put into ready queue
-      FIFOq_enqueue(ready_queue, FIFOq_dequeue(io_1_waiting_queue));
-      if (!FIFOq_is_empty(io_1_waiting_queue)) {
-        io_1_downcounter = QUANTUM_DURATION * (rand() % (5 + 1 - 3) + 3); // reset down counter
-      }
+      // FIFOq_enqueue(ready_queue, FIFOq_dequeue(io_1_waiting_queue));
+      // if (!FIFOq_is_empty(io_1_waiting_queue)) {
+      //   io_1_downcounter = QUANTUM_DURATION * (rand() % (5 + 1 - 3) + 3); // reset down counter
+      // }
     }
 
     if(is_io2_interrupt) { // io2 completion happened
+      printf("is_io2_interrupt\n");
+      pseudo_isr(io_2_completion_interrupt);
       // Pull from io2 waiting queue and put into ready queue
-      FIFOq_enqueue(ready_queue, FIFOq_dequeue(io_2_waiting_queue));
-      if (!FIFOq_is_empty(io_2_waiting_queue)) {
-        io_2_downcounter = QUANTUM_DURATION * (rand() % (5 + 1 - 3) + 3); // reset down counter
-      }
+      // FIFOq_enqueue(ready_queue, FIFOq_dequeue(io_2_waiting_queue));
+      // if (!FIFOq_is_empty(io_2_waiting_queue)) {
+      //   io_2_downcounter = QUANTUM_DURATION * (rand() % (5 + 1 - 3) + 3); // reset down counter
+      // }
     }
+
+    // HOW DOES CHECKING IO FOR CURRENT PROCESS WORK IF IT GETS INTERRUPTED BEFORE THESE NEXT CHECKS
 
 
     // if one of the I/O arrays has a number with the current pc value in it
@@ -288,9 +344,9 @@ void cpu(void) {
     if (current_process->pid != idl->pid) { // idl process should never request io
       is_io_request_interrupt = check_io(current_process);
       if (is_io_request_interrupt == io_1_interrupt) {
-        error_check = pseudo_isr(io_1_interrupt, &pc_register); // if current_process is asking for io 1 device
+        error_check = pseudo_isr(io_1_interrupt); // if current_process is asking for io 1 device
       } else if (is_io_request_interrupt == io_2_interrupt) {
-        error_check = pseudo_isr(io_2_interrupt, &pc_register); // if current_process is asking for io 2 device
+        error_check = pseudo_isr(io_2_interrupt); // if current_process is asking for io 2 device
       }
     }
 
@@ -325,6 +381,7 @@ int main(void) {
   dispatch_counter = 0;
   io_1_downcounter = -1;
   io_2_downcounter = -1;
+  timer_count = 0;
 
   // Create and initialize idle pcb
   idl = PCB_construct();
