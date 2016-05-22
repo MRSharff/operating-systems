@@ -20,7 +20,7 @@ void PCB_destruct(PCB_p the_pcb) {
   free(the_pcb);
 }
 
-int PCB_randomize_IO_arrays(PCB_p the_pcb) {
+void PCB_randomize_IO_arrays(PCB_p the_pcb) {
   int array_num, array_row, num;
   array_num = 0;
   array_row = 0;
@@ -28,9 +28,9 @@ int PCB_randomize_IO_arrays(PCB_p the_pcb) {
   srand(time(NULL));
   for (array_row = 0; array_row < 4; array_row++) {
     num += (rand() % 199) + 1;
-    the_pcb->io_1_[array_row] = num;
+    the_pcb->io_1_[array_row] = -1; //TODO: CHANGE BACK TO num from -1
     num += (rand() % 199) + 1;
-    the_pcb->io_2_[array_row] = num;
+    the_pcb->io_2_[array_row] = -1;
   }
 }
 
@@ -84,7 +84,7 @@ int PCB_set_state(PCB_p the_pcb, pcb_state the_state) {
 char * PCB_to_string(PCB_p the_pcb) {
   if (the_pcb != NULL) {
     static char return_string[82 + 1];
-    sprintf(return_string, "PID: 0x%lX, State: %s, Priority: 0x%hX, PC: 0x%lX",
+    sprintf(return_string, "PID: 0x%luX, State: %s, Priority: 0x%hX, PC: 0x%lu",
             the_pcb->pid, state_names[the_pcb->state], the_pcb->priority, the_pcb->pc);
     return return_string;
   }

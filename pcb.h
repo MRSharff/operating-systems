@@ -52,6 +52,8 @@ void PCB_destruct(PCB_p);
 /** Sets the default values for member data */
 int PCB_init(PCB_p);
 
+void PCB_randomize_IO_arrays(PCB_p);
+
 /** Sets the PID of the pcb */
 int PCB_set_pid(PCB_p, unsigned long);
 

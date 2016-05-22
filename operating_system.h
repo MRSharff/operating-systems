@@ -6,7 +6,7 @@
 #include <time.h>
 
 enum interrupt_type {
-  timer, io_1_interrupt, io_2_interrupt, io_1_completion_interrupt, io_2_completion_interrupt
+  timer, io_1_interrupt, io_2_interrupt, io_1_completion_interrupt, io_2_completion_interrupt, process_termination_interrupt
 };
 
 /**
@@ -22,6 +22,10 @@ PCB_p round_robin(void);
  * process. The dispatcher then returns to the scheduler.
  */
 int dispatcher(PCB_p);
+
+int io_service_request_trap_handler(int the_io_device_number);
+
+int process_termination_trap_handler(void);
 
 /**
  * Determines what type of interrupt happened from argument, schedules
